@@ -40,11 +40,11 @@ export const HeroBanner: React.FC = () => {
   };
 
   return (
-    <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6">
-      {/* Editorial Collage Banner Frame */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl border border-stone-200/90 bg-stone-900 group">
+    <section className="relative w-full pt-0">
+      {/* Editorial Collage Banner Frame - starts at top 0 edge-to-edge behind the transparent overlay header */}
+      <div className="relative w-full overflow-hidden bg-stone-950">
         {!imageError ? (
-          <div className="relative w-full aspect-[2/1] sm:aspect-[2.1/1] overflow-hidden bg-stone-950">
+          <div className="relative w-full aspect-[2/1] sm:aspect-[2.1/1] lg:aspect-[2.3/1] min-h-[380px] sm:min-h-[480px] lg:min-h-[560px] overflow-hidden bg-stone-950">
             <img
               src={bannerImageUrl}
               alt="Yatrababa.com New Season Women's Fashion"
@@ -53,11 +53,11 @@ export const HeroBanner: React.FC = () => {
               className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.01]"
               loading="eager"
             />
-            {/* Subtle luxury edge border */}
-            <div className="absolute inset-0 ring-1 ring-inset ring-black/10 pointer-events-none rounded-2xl sm:rounded-3xl" />
+            {/* Subtle soft gradient overlay ensuring clear dark text/icon contrast at top while keeping header transparent */}
+            <div className="absolute inset-0 bg-gradient-to-b from-stone-900/10 via-transparent to-stone-950/20 pointer-events-none" />
           </div>
         ) : (
-          <div className="min-h-[380px] sm:min-h-[460px] flex items-center justify-center p-8 bg-gradient-to-r from-stone-950 via-stone-900 to-rose-950 text-white text-center">
+          <div className="min-h-[440px] sm:min-h-[520px] flex items-center justify-center p-8 bg-gradient-to-r from-stone-950 via-stone-900 to-rose-950 text-white text-center pt-32">
             <div>
               <Sparkles className="w-8 h-8 text-rose-400 mx-auto mb-3" />
               <h1 className="font-serif text-3xl sm:text-5xl font-bold mb-3">
@@ -72,48 +72,50 @@ export const HeroBanner: React.FC = () => {
       </div>
 
       {/* Floating Interactive Quick-Access Action Strip */}
-      <div className="mt-4 sm:mt-5 bg-white/95 backdrop-blur-md border border-stone-200/90 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Quick Nav Badges */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleExploreCollections}
-            className="px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Explore All Categories</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mt-4 sm:mt-5 bg-white/95 backdrop-blur-md border border-stone-200/90 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Quick Nav Badges */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleExploreCollections}
+              className="px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Explore All Categories</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
 
-          <button
-            onClick={() => handleOpenCategory('saree-collection')}
-            className="px-3.5 py-2 text-xs font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 hover:text-stone-950 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <ShoppingBag className="w-3.5 h-3.5 text-rose-700" />
-            <span>Saree Collection</span>
-          </button>
+            <button
+              onClick={() => handleOpenCategory('saree-collection')}
+              className="px-3.5 py-2 text-xs font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 hover:text-stone-950 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-rose-700" />
+              <span>Saree Collection</span>
+            </button>
 
-          <button
-            onClick={() => handleOpenCategory('western-wear')}
-            className="px-3.5 py-2 text-xs font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 hover:text-stone-950 rounded-xl transition-colors cursor-pointer"
-          >
-            Western Wear
-          </button>
+            <button
+              onClick={() => handleOpenCategory('western-wear')}
+              className="px-3.5 py-2 text-xs font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 hover:text-stone-950 rounded-xl transition-colors cursor-pointer"
+            >
+              Western Wear
+            </button>
 
-          <button
-            onClick={handleShopTrending}
-            className="px-3.5 py-2 text-xs font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 hover:text-stone-950 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
-          >
-            <Flame className="w-3.5 h-3.5 text-amber-600" />
-            <span>Trending Outfits</span>
-          </button>
-        </div>
+            <button
+              onClick={handleShopTrending}
+              className="px-3.5 py-2 text-xs font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 hover:text-stone-950 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <Flame className="w-3.5 h-3.5 text-amber-600" />
+              <span>Trending Outfits</span>
+            </button>
+          </div>
 
-        {/* Quiet Verified Trust Badge */}
-        <div className="flex items-center gap-2 text-xs text-stone-500 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span className="font-medium text-[11px] sm:text-xs text-stone-600">
-            Handpicked Curation • Verified Amazon Affiliate Links
-          </span>
+          {/* Quiet Verified Trust Badge */}
+          <div className="flex items-center gap-2 text-xs text-stone-500 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-medium text-[11px] sm:text-xs text-stone-600">
+              Handpicked Curation • Verified Amazon Affiliate Links
+            </span>
+          </div>
         </div>
       </div>
     </section>

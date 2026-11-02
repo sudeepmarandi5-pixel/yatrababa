@@ -33,13 +33,29 @@ export const Header: React.FC = () => {
     }
   };
 
+  const isHome = currentRoute === 'home';
+
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 transition-all duration-200">
+    <header
+      className={`z-40 transition-all duration-200 ${
+        isHome
+          ? 'absolute top-0 left-0 right-0 bg-transparent border-transparent shadow-none'
+          : 'sticky top-0 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs'
+      }`}
+    >
       {/* Top micro-bar for quick Amazon affiliate transparency */}
-      <div className="bg-stone-900 text-stone-200 text-[11px] py-1 px-4 text-center tracking-wide font-light flex items-center justify-center gap-2">
+      <div
+        className={`text-[11px] py-1.5 px-4 text-center tracking-wide transition-colors flex items-center justify-center gap-2 ${
+          isHome
+            ? 'bg-transparent text-stone-900 border-b border-stone-900/10 font-medium'
+            : 'bg-stone-900 text-stone-200 font-light'
+        }`}
+      >
         <span>Yatrababa.com · Curated Women's Fashion & Amazon Affiliate Boutique</span>
-        <span className="hidden sm:inline text-stone-400">|</span>
-        <span className="hidden sm:inline text-stone-400 text-[10px]">As an Amazon Associate I earn from qualifying purchases</span>
+        <span className={isHome ? 'hidden sm:inline text-stone-500' : 'hidden sm:inline text-stone-400'}>|</span>
+        <span className={isHome ? 'hidden sm:inline text-stone-700 text-[10px]' : 'hidden sm:inline text-stone-400 text-[10px]'}>
+          As an Amazon Associate I earn from qualifying purchases
+        </span>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -60,11 +76,15 @@ export const Header: React.FC = () => {
           </div>
 
           {/* Zone 2: Navigation Links (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-6 text-[13px] tracking-wide font-medium text-stone-700">
+          <nav
+            className={`hidden lg:flex items-center gap-6 text-[13px] tracking-wide font-medium ${
+              isHome ? 'text-stone-800' : 'text-stone-700'
+            }`}
+          >
             <button
               onClick={() => handleNavClick('home')}
               className={`hover:text-rose-700 transition-colors whitespace-nowrap py-1 border-b-2 ${
-                currentRoute === 'home' ? 'border-rose-600 text-stone-900 font-semibold' : 'border-transparent'
+                currentRoute === 'home' ? 'border-rose-600 text-stone-950 font-bold' : 'border-transparent'
               }`}
             >
               Home
@@ -86,7 +106,7 @@ export const Header: React.FC = () => {
             <button
               onClick={() => handleNavClick('about')}
               className={`hover:text-rose-700 transition-colors whitespace-nowrap py-1 border-b-2 ${
-                currentRoute === 'about' ? 'border-rose-600 text-stone-900 font-semibold' : 'border-transparent'
+                currentRoute === 'about' ? 'border-rose-600 text-stone-950 font-bold' : 'border-transparent'
               }`}
             >
               About Me
@@ -95,7 +115,7 @@ export const Header: React.FC = () => {
             <button
               onClick={() => handleNavClick('contact')}
               className={`hover:text-rose-700 transition-colors whitespace-nowrap py-1 border-b-2 ${
-                currentRoute === 'contact' ? 'border-rose-600 text-stone-900 font-semibold' : 'border-transparent'
+                currentRoute === 'contact' ? 'border-rose-600 text-stone-950 font-bold' : 'border-transparent'
               }`}
             >
               Contact Us
@@ -107,16 +127,24 @@ export const Header: React.FC = () => {
             {/* Search Trigger */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className="p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors"
+              className={`p-2 rounded-lg transition-colors ${
+                isHome
+                  ? 'text-stone-800 hover:text-stone-950 hover:bg-stone-900/5'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+              }`}
               aria-label="Toggle Search"
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-5 h-5 stroke-[2]" />
             </button>
 
             {/* Featured Shopping Link */}
             <button
               onClick={() => handleNavClick('category', null)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200/80 rounded-lg hover:bg-rose-100 transition-colors"
+              className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                isHome
+                  ? 'text-stone-900 bg-white/70 hover:bg-white/90 border border-stone-300/80 shadow-xs backdrop-blur-xs'
+                  : 'text-rose-800 bg-rose-50 border border-rose-200/80 hover:bg-rose-100'
+              }`}
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>Shop Catalogue</span>
@@ -128,6 +156,8 @@ export const Header: React.FC = () => {
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                 isAdmin
                   ? 'bg-rose-700 text-white shadow-sm hover:bg-rose-800'
+                  : isHome
+                  ? 'text-stone-900 hover:text-stone-950 bg-white/70 hover:bg-white/90 border border-stone-300/80 shadow-xs backdrop-blur-xs'
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-stone-200'
               }`}
               title="Admin Dashboard"
@@ -139,17 +169,28 @@ export const Header: React.FC = () => {
             {/* Mobile Hamburger Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors"
+              className={`lg:hidden p-2 rounded-lg transition-colors ${
+                isHome
+                  ? 'text-stone-800 hover:text-stone-950 hover:bg-stone-900/5'
+                  : 'text-stone-700 hover:text-stone-900 hover:bg-stone-100'
+              }`}
               aria-label="Open mobile navigation menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-6 h-6 stroke-[2]" /> : <Menu className="w-6 h-6 stroke-[2]" />}
             </button>
           </div>
         </div>
 
         {/* Search Bar Flyout */}
         {searchOpen && (
-          <form onSubmit={handleSearchSubmit} className="py-3 border-t border-stone-200/80">
+          <form
+            onSubmit={handleSearchSubmit}
+            className={`py-3 ${
+              isHome
+                ? 'bg-white/95 backdrop-blur-md border border-stone-200/90 rounded-2xl shadow-xl px-4 my-2'
+                : 'border-t border-stone-200/80'
+            }`}
+          >
             <div className="relative max-w-xl mx-auto">
               <input
                 type="text"
