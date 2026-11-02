@@ -14,6 +14,12 @@ import {
   where,
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { cleanFirestoreData } from '../utils/firestoreUtils';
+import {
+  getLocalCustomProducts,
+  saveLocalProductBackup,
+  removeLocalProductBackup,
+} from '../utils/localProductStorage';
 
 interface AppContextType {
   // Navigation & Routing
@@ -113,8 +119,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  // App Data state initialized with curated seed data
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  // App Data state initialized with curated seed data and any saved custom products
+  const [products, setProducts] = useState<Product[]>(() => {
+    const custom = getLocalCustomProducts();
+    const customIds = new Set(custom.map((p) => p.id));
+    const nonDupeInitial = initialProducts.filter((p) => !customIds.has(p.id));
+    return [...custom, ...nonDupeInitial];
+  });
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [collections, setCollections] = useState<CollectionItem[]>(initialCollections);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(initialSiteSettings);
@@ -278,16 +289,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubProducts = onSnapshot(
       productsQuery,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const list: Product[] = [];
-          snapshot.forEach((d) => {
-            list.push({ id: d.id, ...d.data() } as Product);
-          });
-          // Preserve local catalog items not yet in remote snapshot (e.g. newly added drafts)
-          const remoteIds = new Set(list.map((p) => p.id));
-          const localOnly = initialProducts.filter((p) => !remoteIds.has(p.id));
-          setProducts([...list, ...localOnly]);
-        }
+        const remoteList: Product[] = [];
+        snapshot.forEach((d) => {
+          remoteList.push({ id: d.id, ...d.data() } as Product);
+        });
+
+        // Retrieve any custom products from local backup
+        const customItems = getLocalCustomProducts();
+        const remoteIds = new Set(remoteList.map((p) => p.id));
+
+        // Preserve custom products and initial catalogue not yet in snapshot
+        const localCustom = customItems.filter((p) => !remoteIds.has(p.id));
+        const localInitial = initialProducts.filter(
+          (p) => !remoteIds.has(p.id) && !customItems.some((c) => c.id === p.id)
+        );
+
+        const merged = [...remoteList, ...localCustom, ...localInitial];
+        setProducts(isAdmin ? merged : merged.filter((p) => p.status === 'published'));
       },
       (error) => {
         console.warn('Product snapshot notice:', error.message);
@@ -357,14 +375,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedAt: now,
     };
 
-    setProducts((prev) => [newProduct, ...prev]);
+    // Clean all undefined values before saving to Firestore (prevents Firestore rejection)
+    const cleaned = cleanFirestoreData(newProduct);
+
+    // Save locally immediately so product is never lost on refresh
+    saveLocalProductBackup(newProduct);
+    setProducts((prev) => [newProduct, ...prev.filter((p) => p.id !== id)]);
 
     try {
-      await setDoc(doc(db, 'products', id), newProduct);
+      await setDoc(doc(db, 'products', id), cleaned);
       showToast('Product added successfully to Firestore!');
-    } catch (err) {
-      console.warn('Saved to local catalog (Firestore sync pending permissions):', err);
-      showToast('Product created successfully in catalog!');
+    } catch (err: unknown) {
+      console.error('Firestore save error:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast('Product saved to catalog! (Firestore notice: ' + msg.slice(0, 60) + ')');
+      throw new Error(`Firestore save error: ${msg}`);
     }
 
     return id;
@@ -372,28 +397,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateProduct = async (id: string, updates: Partial<Product>): Promise<void> => {
     const now = new Date().toISOString();
+    const updatedWithTimestamp = { ...updates, updatedAt: now };
+
     setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates, updatedAt: now } : p))
+      prev.map((p) => {
+        if (p.id === id) {
+          const merged = { ...p, ...updatedWithTimestamp };
+          saveLocalProductBackup(merged);
+          return merged;
+        }
+        return p;
+      })
     );
 
+    const cleaned = cleanFirestoreData(updatedWithTimestamp);
+
     try {
-      await setDoc(doc(db, 'products', id), { ...updates, updatedAt: now }, { merge: true });
-      showToast('Product updated successfully!');
-    } catch (err) {
-      console.warn('Product updated locally:', err);
-      showToast('Product updated successfully!');
+      await setDoc(doc(db, 'products', id), cleaned, { merge: true });
+      showToast('Product updated successfully in Firestore!');
+    } catch (err: unknown) {
+      console.error('Firestore update error:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast('Product updated locally! (Firestore notice: ' + msg.slice(0, 60) + ')');
+      throw new Error(`Firestore update error: ${msg}`);
     }
   };
 
   const deleteProduct = async (id: string): Promise<void> => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
+    removeLocalProductBackup(id);
 
     try {
       await deleteDoc(doc(db, 'products', id));
-      showToast('Product deleted from catalog.');
-    } catch (err) {
-      console.warn('Product removed locally:', err);
-      showToast('Product deleted from catalog.');
+      showToast('Product deleted from catalog and Firestore.');
+    } catch (err: unknown) {
+      console.error('Firestore delete error:', err);
+      showToast('Product removed from catalog.');
     }
   };
 
@@ -408,10 +447,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedAt: now,
     };
 
+    const cleaned = cleanFirestoreData(newCat);
     setCategories((prev) => [...prev, newCat]);
 
     try {
-      await setDoc(doc(db, 'categories', id), newCat);
+      await setDoc(doc(db, 'categories', id), cleaned);
       showToast('Category created successfully!');
     } catch (err) {
       console.warn('Category created locally:', err);
@@ -423,12 +463,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateCategory = async (id: string, updates: Partial<Category>): Promise<void> => {
     const now = new Date().toISOString();
+    const cleaned = cleanFirestoreData({ ...updates, updatedAt: now });
+
     setCategories((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates, updatedAt: now } : c))
     );
 
     try {
-      await setDoc(doc(db, 'categories', id), { ...updates, updatedAt: now }, { merge: true });
+      await setDoc(doc(db, 'categories', id), cleaned, { merge: true });
       showToast('Category updated!');
     } catch (err) {
       console.warn('Category updated locally:', err);

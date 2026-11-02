@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import bundledConfig from '../../firebase-applet-config.json';
 
 export enum OperationType {
@@ -38,10 +39,21 @@ const firebaseConfig = {
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 
-// Use specified database ID or default
-export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+// Use specified database ID or default with ignoreUndefinedProperties to prevent setDoc crashes
+const firestoreDbId = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
+  ? firebaseConfig.firestoreDatabaseId
+  : undefined;
+
+export const db = initializeFirestore(
+  app,
+  {
+    ignoreUndefinedProperties: true,
+  },
+  firestoreDbId
+);
+
+// Firebase Storage initialized with project storage bucket
+export const storage = getStorage(app);
 
 export const googleProvider = new GoogleAuthProvider();
 // Force Google account chooser so the user can explicitly select the admin email

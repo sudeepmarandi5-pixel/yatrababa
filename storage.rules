@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Default Deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email.lower() in ["sudeep.marandi5@gmail.com", "digitalauraverse@gmail.com"]
+      );
+    }
+
+    // Product Images: Public read, Admin write
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isBootstrappedAdmin() &&
+        request.resource.size < 15 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    // Category Images: Public read, Admin write
+    match /categories/{allPaths=**} {
+      allow read: if true;
+      allow write: if isBootstrappedAdmin() &&
+        request.resource.size < 15 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    // General site asset uploads by admin
+    match /site/{allPaths=**} {
+      allow read: if true;
+      allow write: if isBootstrappedAdmin() &&
+        request.resource.size < 15 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+  }
+}

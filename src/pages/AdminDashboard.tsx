@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Product, Category, SiteSettings } from '../types';
 import { slugify, formatPrice, isValidAffiliateUrl } from '../utils/productUtils';
@@ -21,6 +21,7 @@ import {
   LogOut,
   AlertTriangle,
   Lock,
+  Loader2,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -57,6 +58,9 @@ export const AdminDashboard: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [productFormError, setProductFormError] = useState<string | null>(null);
+  const [isSavingProduct, setIsSavingProduct] = useState<boolean>(false);
+  const productFormRef = useRef<HTMLDivElement>(null);
 
   // Category Manager State
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -68,8 +72,8 @@ export const AdminDashboard: React.FC = () => {
     name: '',
     shortDescription: '',
     fullDescription: '',
-    categoryId: categories[0]?.id || 'western-wear',
-    categoryName: categories[0]?.name || 'Western Wear',
+    categoryId: categories[0]?.id || 'saree-collection',
+    categoryName: categories[0]?.name || 'Saree Collection',
     brand: '',
     price: '' as string | number,
     currency: siteSettings.currency || 'USD',
@@ -118,6 +122,7 @@ export const AdminDashboard: React.FC = () => {
   const handleStartEditProduct = (prod: Product) => {
     setEditingProduct(prod);
     setIsCreatingProduct(false);
+    setProductFormError(null);
     setProductForm({
       name: prod.name,
       shortDescription: prod.shortDescription || '',
@@ -135,21 +140,25 @@ export const AdminDashboard: React.FC = () => {
       isTrending: prod.isTrending || false,
       status: prod.status,
     });
+    setTimeout(() => {
+      productFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
   };
 
   const handleStartCreateProduct = () => {
     setIsCreatingProduct(true);
     setEditingProduct(null);
+    setProductFormError(null);
     setProductForm({
       name: '',
       shortDescription: '',
       fullDescription: '',
-      categoryId: categories[0]?.id || 'western-wear',
-      categoryName: categories[0]?.name || 'Western Wear',
+      categoryId: categories[0]?.id || 'saree-collection',
+      categoryName: categories[0]?.name || 'Saree Collection',
       brand: '',
       price: '',
       currency: siteSettings.currency || 'USD',
-      imageUrl: categories[0]?.imageUrl || '',
+      imageUrl: '', // Clean blank state ready for user upload
       affiliateUrl: '',
       availabilityNote: 'In Stock on Amazon',
       isFeatured: false,
@@ -157,64 +166,86 @@ export const AdminDashboard: React.FC = () => {
       isTrending: false,
       status: 'published',
     });
+    setTimeout(() => {
+      productFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    setProductFormError(null);
+
+    // Validation
     if (!productForm.name.trim()) {
-      showToast('Product name is required.');
+      const msg = 'Product name is required.';
+      setProductFormError(msg);
+      showToast(msg);
       return;
     }
     if (!productForm.imageUrl.trim()) {
-      showToast('Product image is required.');
+      const msg = 'Product image is required. Please upload an image from your Mac/device or enter an image URL.';
+      setProductFormError(msg);
+      showToast(msg);
       return;
     }
 
     const selectedCat = categories.find((c) => c.id === productForm.categoryId);
     const catName = selectedCat ? selectedCat.name : productForm.categoryName;
-    const priceNum = productForm.price !== '' ? Number(productForm.price) : undefined;
+    const priceNum = productForm.price !== '' && !isNaN(Number(productForm.price)) ? Number(productForm.price) : undefined;
     const slug = slugify(productForm.name);
 
-    if (editingProduct) {
-      await updateProduct(editingProduct.id, {
-        name: productForm.name.trim(),
-        slug,
-        shortDescription: productForm.shortDescription.trim(),
-        fullDescription: productForm.fullDescription.trim(),
-        categoryId: productForm.categoryId,
-        categoryName: catName,
-        brand: productForm.brand.trim() || undefined,
-        price: priceNum,
-        currency: productForm.currency,
-        imageUrl: productForm.imageUrl,
-        affiliateUrl: productForm.affiliateUrl.trim(),
-        availabilityNote: productForm.availabilityNote.trim() || undefined,
-        isFeatured: productForm.isFeatured,
-        isEditorsPick: productForm.isEditorsPick,
-        isTrending: productForm.isTrending,
-        status: productForm.status,
-      });
-      setEditingProduct(null);
-    } else {
-      await addProduct({
-        name: productForm.name.trim(),
-        slug,
-        shortDescription: productForm.shortDescription.trim(),
-        fullDescription: productForm.fullDescription.trim(),
-        categoryId: productForm.categoryId,
-        categoryName: catName,
-        brand: productForm.brand.trim() || undefined,
-        price: priceNum,
-        currency: productForm.currency,
-        imageUrl: productForm.imageUrl,
-        affiliateUrl: productForm.affiliateUrl.trim(),
-        availabilityNote: productForm.availabilityNote.trim() || undefined,
-        isFeatured: productForm.isFeatured,
-        isEditorsPick: productForm.isEditorsPick,
-        isTrending: productForm.isTrending,
-        status: productForm.status,
-      });
-      setIsCreatingProduct(false);
+    setIsSavingProduct(true);
+    try {
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, {
+          name: productForm.name.trim(),
+          slug,
+          shortDescription: productForm.shortDescription.trim(),
+          fullDescription: productForm.fullDescription.trim(),
+          categoryId: productForm.categoryId,
+          categoryName: catName,
+          brand: productForm.brand.trim() || undefined,
+          price: priceNum,
+          currency: productForm.currency,
+          imageUrl: productForm.imageUrl,
+          affiliateUrl: productForm.affiliateUrl.trim(),
+          availabilityNote: productForm.availabilityNote.trim() || undefined,
+          isFeatured: productForm.isFeatured,
+          isEditorsPick: productForm.isEditorsPick,
+          isTrending: productForm.isTrending,
+          status: productForm.status,
+        });
+        setEditingProduct(null);
+        setProductFormError(null);
+      } else {
+        await addProduct({
+          name: productForm.name.trim(),
+          slug,
+          shortDescription: productForm.shortDescription.trim(),
+          fullDescription: productForm.fullDescription.trim(),
+          categoryId: productForm.categoryId,
+          categoryName: catName,
+          brand: productForm.brand.trim() || undefined,
+          price: priceNum,
+          currency: productForm.currency,
+          imageUrl: productForm.imageUrl,
+          affiliateUrl: productForm.affiliateUrl.trim(),
+          availabilityNote: productForm.availabilityNote.trim() || undefined,
+          isFeatured: productForm.isFeatured,
+          isEditorsPick: productForm.isEditorsPick,
+          isTrending: productForm.isTrending,
+          status: productForm.status,
+        });
+        setIsCreatingProduct(false);
+        setProductFormError(null);
+      }
+    } catch (err: unknown) {
+      console.error('Error saving product:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setProductFormError(msg);
+      showToast('Error saving product: ' + msg.slice(0, 60));
+    } finally {
+      setIsSavingProduct(false);
     }
   };
 
@@ -585,22 +616,40 @@ export const AdminDashboard: React.FC = () => {
 
           {/* Product Form Modal / Section */}
           {(isCreatingProduct || editingProduct) && (
-            <div className="bg-white rounded-3xl border-2 border-rose-200 p-6 sm:p-8 space-y-6 shadow-md">
+            <div ref={productFormRef} className="bg-white rounded-3xl border-2 border-rose-200 p-6 sm:p-8 space-y-6 shadow-md scroll-mt-6">
               <div className="flex items-center justify-between border-b border-stone-200 pb-4">
-                <h3 className="font-serif text-xl font-bold text-stone-900">
-                  {editingProduct ? 'Edit Fashion Product' : 'Add New Fashion Product'}
-                </h3>
+                <div>
+                  <h3 className="font-serif text-xl font-bold text-stone-900">
+                    {editingProduct ? 'Edit Fashion Product' : 'Add New Fashion Product'}
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    {editingProduct
+                      ? 'Modify product specifications and update changes across the site.'
+                      : 'Upload photo from your Mac, set affiliate details, and publish to Yatrababa.'}
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
                     setIsCreatingProduct(false);
                     setEditingProduct(null);
+                    setProductFormError(null);
                   }}
-                  className="text-xs text-stone-500 hover:text-stone-800 underline"
+                  className="text-xs text-stone-500 hover:text-stone-800 underline cursor-pointer"
                 >
                   Cancel
                 </button>
               </div>
+
+              {productFormError && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-bold text-rose-900">Unable to Save Product</p>
+                    <p className="mt-0.5">{productFormError}</p>
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleSaveProduct} className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -808,19 +857,31 @@ export const AdminDashboard: React.FC = () => {
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-200">
                   <button
                     type="button"
+                    disabled={isSavingProduct}
                     onClick={() => {
                       setIsCreatingProduct(false);
                       setEditingProduct(null);
+                      setProductFormError(null);
                     }}
-                    className="px-4 py-2 text-xs font-medium text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer"
+                    className="px-4 py-2 text-xs font-medium text-stone-700 bg-stone-100 hover:bg-stone-200 disabled:opacity-50 rounded-lg transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 rounded-lg shadow-xs transition-colors cursor-pointer"
+                    disabled={isSavingProduct}
+                    className="px-6 py-2.5 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-60 rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-2"
                   >
-                    {editingProduct ? 'Update Product' : 'Create & Save Product'}
+                    {isSavingProduct && <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />}
+                    <span>
+                      {isSavingProduct
+                        ? editingProduct
+                          ? 'Updating in Firestore...'
+                          : 'Saving to Firestore...'
+                        : editingProduct
+                        ? 'Update Product'
+                        : 'Create & Save Product'}
+                    </span>
                   </button>
                 </div>
               </form>

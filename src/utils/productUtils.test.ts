@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { slugify, formatPrice, isValidAffiliateUrl, isAmazonUrl, filterProducts } from './productUtils';
+import { cleanFirestoreData } from './firestoreUtils';
 import { Product } from '../types';
 
 test('slugify converts titles to URL-friendly strings', () => {
@@ -100,3 +101,25 @@ test('filterProducts filters by category, search query, status, and sorts correc
   assert.equal(sortedByPriceAsc[0].id, 'p1');
   assert.equal(sortedByPriceAsc[1].id, 'p2');
 });
+
+test('cleanFirestoreData strips undefined properties recursively for Firestore compatibility', () => {
+  const rawData = {
+    name: 'Silk Kurti',
+    brand: undefined,
+    price: undefined,
+    nested: {
+      color: 'Emerald',
+      season: undefined,
+    },
+    tags: ['ethnic', 'festive'],
+  };
+
+  const cleaned = cleanFirestoreData(rawData);
+  assert.equal('brand' in cleaned, false);
+  assert.equal('price' in cleaned, false);
+  assert.equal(cleaned.name, 'Silk Kurti');
+  assert.equal(cleaned.nested.color, 'Emerald');
+  assert.equal('season' in cleaned.nested, false);
+  assert.deepEqual(cleaned.tags, ['ethnic', 'festive']);
+});
+
