@@ -36,9 +36,12 @@ interface AppContextType {
   // Admin Auth & State
   currentUser: User | null;
   isAdmin: boolean;
-  isDemoAdmin: boolean;
-  toggleDemoAdmin: () => void;
-  loginWithGoogle: () => Promise<void>;
+  isUnauthorizedUser: boolean;
+  authorizedEmails: string[];
+  isSigningIn: boolean;
+  authError: string | null;
+  setAuthError: (err: string | null) => void;
+  loginWithGoogle: () => Promise<boolean>;
   logout: () => Promise<void>;
 
   // Management Actions
@@ -77,7 +80,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isDemoAdmin, setIsDemoAdmin] = useState<boolean>(false);
+  const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -92,27 +96,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Check admin privileges: either authenticated with authorized admin email or demo admin active
-  const authorizedEmails = ['sudeep.marandi5@gmail.com', 'digitalauraverse@gmail.com'];
-  const isAdmin = isDemoAdmin || (!!currentUser && !!currentUser.email && authorizedEmails.includes(currentUser.email));
+  // Check admin privileges: strictly verified against authorized owner emails (case-insensitive & trimmed)
+  const authorizedEmails = [
+    'sudeep.marandi5@gmail.com',
+    'digitalauraverse@gmail.com',
+  ];
 
-  const toggleDemoAdmin = () => {
-    setIsDemoAdmin((prev) => {
-      const next = !prev;
-      showToast(next ? 'Admin Demo Mode Activated' : 'Admin Demo Mode Deactivated');
-      return next;
-    });
-  };
+  const userEmail = currentUser?.email ? currentUser.email.toLowerCase().trim() : '';
+  const isAdmin = !!userEmail && authorizedEmails.includes(userEmail);
+  const isUnauthorizedUser = !!currentUser && !isAdmin;
 
-  // Google Sign-In
-  const loginWithGoogle = async () => {
+  // Google Sign-In with detailed error diagnostics and account selection prompt
+  const loginWithGoogle = async (): Promise<boolean> => {
+    setAuthError(null);
+    setIsSigningIn(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
       setCurrentUser(result.user);
-      showToast(`Signed in as ${result.user.displayName || result.user.email}`);
-    } catch (err) {
+      const email = result.user.email ? result.user.email.toLowerCase().trim() : '';
+      if (authorizedEmails.includes(email)) {
+        showToast(`Welcome back, ${result.user.displayName || result.user.email}!`);
+        return true;
+      } else {
+        const warning = `Signed in with ${result.user.email}, but this account is not in the authorized administrator list.`;
+        setAuthError(warning);
+        showToast('Unauthorized account for admin dashboard.');
+        return false;
+      }
+    } catch (err: unknown) {
       console.error('Google Sign-In error:', err);
-      showToast('Sign-in cancelled or failed.');
+      const fbErr = err as { code?: string; message?: string };
+      let message = 'Google sign-in could not be completed. Please try again.';
+
+      if (fbErr?.code === 'auth/popup-closed-by-user') {
+        message = 'The Google sign-in popup was closed before completing authentication. Please click "Sign in with Google" and complete account selection.';
+      } else if (fbErr?.code === 'auth/popup-blocked') {
+        message = 'The sign-in popup was blocked by your browser. Please allow popups for this site and try again.';
+      } else if (fbErr?.code === 'auth/unauthorized-domain') {
+        const currentDomain = window.location.hostname;
+        message = `Domain "${currentDomain}" is not in Firebase Authorized Domains. In Firebase Console > Authentication > Settings > Authorized Domains, add "${currentDomain}".`;
+      } else if (fbErr?.code === 'auth/operation-not-allowed') {
+        message = 'Google Sign-In is not enabled for project "yatrababa-8b728". In Firebase Console > Authentication > Sign-in method, ensure "Google" is enabled and a Project support email is configured.';
+      } else if (fbErr?.code === 'auth/network-request-failed') {
+        message = 'Network error while contacting Google Authentication servers. Please check your internet connection.';
+      } else if (fbErr?.message) {
+        message = `${fbErr.message} (${fbErr.code || 'auth-error'})`;
+      }
+
+      setAuthError(message);
+      showToast('Authentication failed.');
+      return false;
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
@@ -121,7 +156,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       await signOut(auth);
       setCurrentUser(null);
-      setIsDemoAdmin(false);
+      setAuthError(null);
       showToast('Signed out successfully.');
     } catch (err) {
       console.error('Logout error:', err);
@@ -132,6 +167,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      if (user?.email) {
+        const email = user.email.toLowerCase().trim();
+        if (!authorizedEmails.includes(email)) {
+          setAuthError(`Signed in as ${user.email}, but this account is not in the authorized admin list.`);
+        } else {
+          setAuthError(null);
+        }
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -164,7 +207,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
       } catch (err) {
-        console.warn('Firestore initial check (using resilient local cache):', err);
+        console.warn('Firestore initial check:', err);
       } finally {
         if (isSubscribed) {
           setIsLoadingData(false);
@@ -235,7 +278,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       unsubCategories();
       unsubSettings();
     };
-  }, []);
+  }, [isAdmin]);
 
   // Product CRUD
   const addProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
@@ -252,7 +295,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       await setDoc(doc(db, 'products', id), newProduct);
-      showToast('Product added successfully!');
+      showToast('Product added successfully to Firestore!');
     } catch (err) {
       console.warn('Saved to local catalog (Firestore sync pending permissions):', err);
       showToast('Product created successfully in catalog!');
@@ -328,7 +371,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteCategory = async (id: string): Promise<void> => {
-    // Check if products exist in category
     const count = products.filter((p) => p.categoryId === id).length;
     if (count > 0) {
       throw new Error(`Cannot delete category with ${count} existing products. Reassign or remove products first.`);
@@ -386,7 +428,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       await setDoc(doc(db, 'messages', msgId), payload);
     } catch (err) {
-      console.warn('Notice on message save (email service fallback active):', err);
+      console.warn('Notice on message save:', err);
     }
   };
 
@@ -408,8 +450,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isLoadingData,
         currentUser,
         isAdmin,
-        isDemoAdmin,
-        toggleDemoAdmin,
+        isUnauthorizedUser,
+        authorizedEmails,
+        isSigningIn,
+        authError,
+        setAuthError,
         loginWithGoogle,
         logout,
         addProduct,

@@ -30,8 +30,11 @@ export const AdminDashboard: React.FC = () => {
     siteSettings,
     currentUser,
     isAdmin,
-    isDemoAdmin,
-    toggleDemoAdmin,
+    isUnauthorizedUser,
+    authorizedEmails,
+    isSigningIn,
+    authError,
+    setAuthError,
     loginWithGoogle,
     logout,
     addProduct,
@@ -301,10 +304,10 @@ export const AdminDashboard: React.FC = () => {
     await updateSiteSettings(settingsForm);
   };
 
-  // If user is not admin, show secure sign-in / admin access gateway
+  // If user is not an authorized admin, display the authentication gate
   if (!isAdmin) {
     return (
-      <div className="max-w-md mx-auto my-16 px-4">
+      <div className="max-w-lg mx-auto my-16 px-4">
         <div className="bg-white rounded-3xl border border-stone-200/90 p-8 text-center space-y-6 shadow-sm">
           <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center mx-auto">
             <Lock className="w-7 h-7" />
@@ -315,33 +318,87 @@ export const AdminDashboard: React.FC = () => {
               Admin Authentication
             </h1>
             <p className="text-xs text-stone-500 leading-relaxed">
-              This dashboard is restricted to the owner of Yatrababa.com. Please authenticate to manage products, categories, banner, and settings.
+              This dashboard is strictly private and restricted to the owner of Yatrababa.com. Sign in with your authorized Google Account.
             </p>
           </div>
 
-          <div className="space-y-3 pt-2">
-            <button
-              onClick={loginWithGoogle}
-              className="w-full py-3 px-4 bg-stone-900 hover:bg-stone-800 text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
-            >
-              <Shield className="w-4 h-4 text-rose-400" />
-              <span>Sign in with Google</span>
-            </button>
+          {/* Project & Connection Status Badge */}
+          <div className="py-2 px-3 bg-stone-50 rounded-xl border border-stone-200 text-[11px] text-stone-600 flex items-center justify-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Connected to Firebase: <strong className="text-stone-800">yatrababa-8b728</strong></span>
+          </div>
 
-            {/* In-app Instant Evaluation Admin Mode */}
-            <div className="pt-4 border-t border-stone-100">
-              <p className="text-[11px] text-stone-400 mb-2">
-                Testing or Previewing? Toggle Admin Demo Mode:
+          {/* Detailed Error Box */}
+          {authError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-left space-y-2">
+              <div className="flex items-start gap-2 text-red-700 font-semibold text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Authentication Notice</span>
+              </div>
+              <p className="text-xs text-red-600 leading-relaxed">
+                {authError}
               </p>
               <button
                 type="button"
-                onClick={toggleDemoAdmin}
-                className="w-full py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                onClick={() => setAuthError(null)}
+                className="text-[11px] text-red-700 underline font-medium hover:text-red-900"
               >
-                Enable Admin Demo Mode
+                Dismiss notice
               </button>
             </div>
-          </div>
+          )}
+
+          {/* Unauthorized User Warning (Signed into Google, but email not in authorized list) */}
+          {isUnauthorizedUser && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-left space-y-3">
+              <div className="flex items-start gap-2 text-amber-800 font-semibold text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Account Not Authorized</span>
+              </div>
+              <p className="text-xs text-amber-900 leading-relaxed">
+                You are currently signed in as <strong className="font-mono">{currentUser?.email}</strong>. This email is not listed in the authorized owner administrator accounts.
+              </p>
+              <div className="text-[11px] text-amber-800 bg-amber-100/60 p-2.5 rounded-lg">
+                <span className="font-semibold block mb-1">Authorized Administrator Accounts:</span>
+                <ul className="list-disc list-inside space-y-0.5">
+                  {authorizedEmails.map((email) => (
+                    <li key={email} className="font-mono">{email}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={loginWithGoogle}
+                  className="flex-1 py-2 px-3 text-xs font-semibold text-white bg-amber-700 hover:bg-amber-800 rounded-lg transition-colors cursor-pointer"
+                >
+                  Switch Google Account
+                </button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="py-2 px-3 text-xs font-medium text-stone-700 bg-white border border-stone-300 hover:bg-stone-50 rounded-lg transition-colors cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Sign in Button when not authenticated or retrying */}
+          {!currentUser && (
+            <div className="space-y-3 pt-2">
+              <button
+                type="button"
+                onClick={loginWithGoogle}
+                disabled={isSigningIn}
+                className="w-full py-3 px-4 bg-stone-900 hover:bg-stone-800 disabled:bg-stone-600 text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+              >
+                <Shield className="w-4 h-4 text-rose-400" />
+                <span>{isSigningIn ? 'Connecting to Google...' : 'Sign in with Google'}</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -360,11 +417,9 @@ export const AdminDashboard: React.FC = () => {
               <h1 className="font-serif text-2xl font-bold text-stone-900">
                 Admin Control Center
               </h1>
-              {isDemoAdmin && (
-                <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-800 rounded">
-                  Demo Mode
-                </span>
-              )}
+              <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 rounded">
+                Verified Admin
+              </span>
             </div>
             <p className="text-xs text-stone-500">
               Manage Yatrababa.com catalogue, affiliate destinations, categories, and settings.

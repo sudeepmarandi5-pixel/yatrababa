@@ -1,7 +1,7 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
+import bundledConfig from '../../firebase-applet-config.json';
 
 export enum OperationType {
   CREATE = 'create',
@@ -24,10 +24,30 @@ export interface FirestoreErrorInfo {
   };
 }
 
-export const app = initializeApp(firebaseConfig);
+// Allow Netlify / external environment variable overrides while defaulting to bundled yatrababa-8b728 config
+const firebaseConfig = {
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || bundledConfig.projectId || 'yatrababa-8b728',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || bundledConfig.appId,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || bundledConfig.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || bundledConfig.authDomain || 'yatrababa-8b728.firebaseapp.com',
+  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DB_ID || bundledConfig.firestoreDatabaseId || '(default)',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || bundledConfig.storageBucket || 'yatrababa-8b728.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || bundledConfig.messagingSenderId,
+};
+
+export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// Use specified database ID or default
+export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
+
 export const googleProvider = new GoogleAuthProvider();
+// Force Google account chooser so the user can explicitly select the admin email
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+});
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
   const errInfo: FirestoreErrorInfo = {
