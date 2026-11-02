@@ -26,14 +26,16 @@ export interface FirestoreErrorInfo {
 }
 
 // Allow Netlify / external environment variable overrides while defaulting to bundled yatrababa-8b728 config
+const env = (typeof import.meta !== 'undefined' && import.meta?.env) ? import.meta.env : ({} as Record<string, string | undefined>);
+
 const firebaseConfig = {
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || bundledConfig.projectId || 'yatrababa-8b728',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || bundledConfig.appId,
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || bundledConfig.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || bundledConfig.authDomain || 'yatrababa-8b728.firebaseapp.com',
-  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DB_ID || bundledConfig.firestoreDatabaseId || '(default)',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || bundledConfig.storageBucket || 'yatrababa-8b728.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || bundledConfig.messagingSenderId,
+  projectId: env.VITE_FIREBASE_PROJECT_ID || bundledConfig.projectId || 'yatrababa-8b728',
+  appId: env.VITE_FIREBASE_APP_ID || bundledConfig.appId,
+  apiKey: env.VITE_FIREBASE_API_KEY || bundledConfig.apiKey,
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || bundledConfig.authDomain || 'yatrababa-8b728.firebaseapp.com',
+  firestoreDatabaseId: env.VITE_FIREBASE_FIRESTORE_DB_ID || bundledConfig.firestoreDatabaseId || '(default)',
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || bundledConfig.storageBucket || 'yatrababa-8b728.firebasestorage.app',
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || bundledConfig.messagingSenderId,
 };
 
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
