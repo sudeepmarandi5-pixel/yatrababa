@@ -348,9 +348,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       doc(db, 'siteSettings', 'main'),
       (docSnap) => {
         if (docSnap.exists()) {
-          setSiteSettings(docSnap.data() as SiteSettings);
+          const remoteSettings = docSnap.data() as SiteSettings;
+          // If remote hero image is missing or still uses the temporary SVG placeholder, upgrade to the official collage banner
+          if (
+            !remoteSettings.heroBanner?.imageUrl ||
+            remoteSettings.heroBanner.imageUrl.includes('data:image/svg+xml')
+          ) {
+            remoteSettings.heroBanner = {
+              ...(remoteSettings.heroBanner || initialSiteSettings.heroBanner),
+              imageUrl: '/assets/aistudio/New_Season_Women_s_Fashion_Collage_b4466da5.png',
+            };
+          }
+          setSiteSettings(remoteSettings);
         }
       },
+
       (error) => {
         console.warn('Settings snapshot notice:', error.message);
       }

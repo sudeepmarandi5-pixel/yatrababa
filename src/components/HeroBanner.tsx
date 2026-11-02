@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, ShoppingBag, ShieldCheck, Flame } from 'lucide-react';
 
 export const HeroBanner: React.FC = () => {
   const { siteSettings, setCurrentRoute, setSelectedCategorySlug } = useApp();
@@ -10,6 +10,11 @@ export const HeroBanner: React.FC = () => {
   if (!hero || hero.isEnabled === false) {
     return null;
   }
+
+  const bannerImageUrl =
+    hero.imageUrl && !hero.imageUrl.includes('data:image/svg+xml')
+      ? hero.imageUrl
+      : '/assets/aistudio/New_Season_Women_s_Fashion_Collage_b4466da5.png';
 
   const handleExploreCollections = () => {
     const el = document.getElementById('shop-by-category');
@@ -29,84 +34,89 @@ export const HeroBanner: React.FC = () => {
     }
   };
 
-  return (
-    <section className="relative overflow-hidden bg-stone-900 text-white min-h-[520px] lg:min-h-[580px] flex items-center">
-      {/* Background Image / SVG Presentation */}
-      <div className="absolute inset-0 z-0">
-        {!imageError && hero.imageUrl ? (
-          <img
-            src={hero.imageUrl}
-            alt="Yatrababa.com Women's Fashion"
-            referrerPolicy="no-referrer"
-            onError={() => setImageError(true)}
-            className="w-full h-full object-cover object-center opacity-45 scale-102"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-r from-stone-950 via-stone-900 to-rose-950/70" />
-        )}
+  const handleOpenCategory = (slug: string) => {
+    setSelectedCategorySlug(slug);
+    setCurrentRoute('category');
+  };
 
-        {/* Cinematic Scrim for high text legibility */}
-        <div className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-950/80 to-transparent" />
-        <div className="absolute inset-0 bg-radial from-transparent via-transparent to-stone-950/60" />
+  return (
+    <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6">
+      {/* Editorial Collage Banner Frame */}
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl border border-stone-200/90 bg-stone-900 group">
+        {!imageError ? (
+          <div className="relative w-full aspect-[2/1] sm:aspect-[2.1/1] overflow-hidden bg-stone-950">
+            <img
+              src={bannerImageUrl}
+              alt="Yatrababa.com New Season Women's Fashion"
+              referrerPolicy="no-referrer"
+              onError={() => setImageError(true)}
+              className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.01]"
+              loading="eager"
+            />
+            {/* Subtle luxury edge border */}
+            <div className="absolute inset-0 ring-1 ring-inset ring-black/10 pointer-events-none rounded-2xl sm:rounded-3xl" />
+          </div>
+        ) : (
+          <div className="min-h-[380px] sm:min-h-[460px] flex items-center justify-center p-8 bg-gradient-to-r from-stone-950 via-stone-900 to-rose-950 text-white text-center">
+            <div>
+              <Sparkles className="w-8 h-8 text-rose-400 mx-auto mb-3" />
+              <h1 className="font-serif text-3xl sm:text-5xl font-bold mb-3">
+                {hero.heading || 'New Season Women’s Fashion'}
+              </h1>
+              <p className="text-stone-300 max-w-xl mx-auto text-sm sm:text-base">
+                {hero.subtext || 'Trendy • Elegant • Stylish — Handpicked Amazon Discoveries.'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Hero Content Container */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-        <div className="max-w-2xl">
-          {/* Subtle editorial kicker */}
-          <div className="flex items-center gap-2 text-rose-300 text-xs sm:text-sm font-medium tracking-widest uppercase mb-4">
-            <Sparkles className="w-4 h-4 text-rose-400" />
-            <span>Curated Women's Fashion & Amazon Affiliate Boutique</span>
-          </div>
+      {/* Floating Interactive Quick-Access Action Strip */}
+      <div className="mt-4 sm:mt-5 bg-white/95 backdrop-blur-md border border-stone-200/90 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Quick Nav Badges */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExploreCollections}
+            className="px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Explore All Categories</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
 
-          {/* Hero Headline */}
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight mb-6 [text-wrap:balance]">
-            {hero.heading || 'Discover Your Style'}
-          </h1>
+          <button
+            onClick={() => handleOpenCategory('saree-collection')}
+            className="px-3.5 py-2 text-xs font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 hover:text-stone-950 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <ShoppingBag className="w-3.5 h-3.5 text-rose-700" />
+            <span>Saree Collection</span>
+          </button>
 
-          {/* Subtext */}
-          <p className="text-base sm:text-lg text-stone-200/90 leading-relaxed font-light mb-8 max-w-xl">
-            {hero.subtext ||
-              'Explore Western Glamour, Timeless Sarees, and Effortless Desi Elegance with handpicked Amazon discoveries.'}
-          </p>
+          <button
+            onClick={() => handleOpenCategory('western-wear')}
+            className="px-3.5 py-2 text-xs font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 hover:text-stone-950 rounded-xl transition-colors cursor-pointer"
+          >
+            Western Wear
+          </button>
 
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center gap-4">
-            <button
-              onClick={handleExploreCollections}
-              className="px-6 py-3.5 text-sm font-semibold text-stone-900 bg-white hover:bg-rose-50 rounded-xl transition-all shadow-md flex items-center gap-2 group cursor-pointer"
-            >
-              <span>{hero.buttonText || 'Explore Collections'}</span>
-              <ArrowRight className="w-4 h-4 text-stone-900 group-hover:translate-x-1 transition-transform" />
-            </button>
+          <button
+            onClick={handleShopTrending}
+            className="px-3.5 py-2 text-xs font-medium text-stone-800 bg-stone-100 hover:bg-stone-200 hover:text-stone-950 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+          >
+            <Flame className="w-3.5 h-3.5 text-amber-600" />
+            <span>Trending Outfits</span>
+          </button>
+        </div>
 
-            <button
-              onClick={handleShopTrending}
-              className="px-6 py-3.5 text-sm font-semibold text-white bg-white/10 hover:bg-white/20 backdrop-blur-xs border border-white/30 rounded-xl transition-all cursor-pointer"
-            >
-              {hero.secondaryButtonText || 'Shop Trending'}
-            </button>
-          </div>
-
-          {/* Quiet Trust Bar */}
-          <div className="mt-10 pt-6 border-t border-white/15 flex flex-wrap items-center gap-6 text-xs text-stone-300">
-            <div>
-              <span className="font-semibold text-white block">Handpicked Quality</span>
-              <span>Top-rated styles</span>
-            </div>
-            <div className="hidden sm:block w-px h-8 bg-white/20" />
-            <div>
-              <span className="font-semibold text-white block">Trusted Amazon Checkout</span>
-              <span>Fast & secure purchase</span>
-            </div>
-            <div className="hidden sm:block w-px h-8 bg-white/20" />
-            <div>
-              <span className="font-semibold text-white block">Curated Curation</span>
-              <span>Ethnic & Western looks</span>
-            </div>
-          </div>
+        {/* Quiet Verified Trust Badge */}
+        <div className="flex items-center gap-2 text-xs text-stone-500 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span className="font-medium text-[11px] sm:text-xs text-stone-600">
+            Handpicked Curation • Verified Amazon Affiliate Links
+          </span>
         </div>
       </div>
     </section>
   );
 };
+

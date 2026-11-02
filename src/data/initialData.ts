@@ -315,12 +315,13 @@ export const initialSiteSettings: SiteSettings = {
     'Welcome to Yatrababa.com, your premier online destination for discovering beautiful women’s fashion, from contemporary Western silhouettes to timeless traditional Indian drapes.\n\nWe curate fashion inspiration, styling ideas, and hand-picked product discoveries to help women across the globe explore styles for everyday wear, workwear, festive celebrations, and red-carpet moments.\n\nOur goal is to make fashion discovery inspiring, effortless, and accessible by connecting you directly with trusted Amazon shopping selections.',
   heroBanner: {
     isEnabled: true,
-    heading: 'Discover Your Style',
-    subtext: 'Explore Western Glamour, Timeless Sarees, and Effortless Desi Elegance.',
+    heading: 'New Season Women’s Fashion',
+    subtext: 'Trendy • Elegant • Stylish — Explore Western Glamour, Timeless Sarees, and Effortless Desi Elegance with handpicked Amazon discoveries.',
     buttonText: 'Explore Collections',
     buttonLink: '#collections',
     secondaryButtonText: 'Shop Trending',
     secondaryButtonLink: '#trending',
-    imageUrl: fashionSvgImages.hero,
+    imageUrl: '/assets/aistudio/New_Season_Women_s_Fashion_Collage_b4466da5.png',
   },
 };
+
