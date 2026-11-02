@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == "sudeep.marandi5@gmail.com" ||
+         request.auth.token.email == "digitalauraverse@gmail.com") &&
+        request.auth.token.email_verified == true
+      );
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() ||
+        (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Admins collection
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if isBootstrappedAdmin();
+    }
+
+    // Products collection: public can only read published products
+    match /products/{productId} {
+      allow read: if (resource.data.status == 'published') || isAdmin();
+
+      allow create: if isAdmin() && isValidId(productId) &&
+        request.resource.data.name is string && request.resource.data.name.size() > 0 &&
+        request.resource.data.slug is string &&
+        request.resource.data.imageUrl is string &&
+        request.resource.data.status in ['draft', 'published'];
+
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Categories collection: public can only read enabled categories
+    match /categories/{categoryId} {
+      allow read: if (resource.data.isEnabled == true) || isAdmin();
+
+      allow create: if isAdmin() && isValidId(categoryId) &&
+        request.resource.data.name is string && request.resource.data.name.size() > 0 &&
+        request.resource.data.slug is string &&
+        request.resource.data.isEnabled is bool;
+
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Collections
+    match /collections/{collectionId} {
+      allow read: if (resource.data.isEnabled == true) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Site Settings: publicly readable, admin editable
+    match /siteSettings/{settingsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Contact messages / inquiries
+    match /messages/{messageId} {
+      allow create: if request.resource.data.email is string &&
+        request.resource.data.name is string &&
+        request.resource.data.message is string &&
+        request.resource.data.message.size() <= 3000;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Yatrababa.com - Women's Fashion & Affiliate Discovery",
+  "description": "Curated women's fashion discovery and Amazon affiliate shopping for Western wear, sarees, desi style, indo-western, party wear, and accessories.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
