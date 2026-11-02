@@ -18,7 +18,7 @@ export const initialCategories: Category[] = [
     name: 'Saree Collection',
     slug: 'saree-collection',
     description: 'Timeless handloom Banarasi, regal Kanjeevarams, and lightweight floral organza drapes.',
-    imageUrl: fashionSvgImages.saree,
+    imageUrl: '/assets/aistudio/Elegant_White_Saree_with_Sage_Green_Blouse_____Ethnic_Fashion_f023b3b4.jpeg',
     order: 2,
     isEnabled: true,
     createdAt: '2026-01-01T00:00:00.000Z',
@@ -71,6 +71,27 @@ export const initialCategories: Category[] = [
 ];
 
 export const initialProducts: Product[] = [
+  {
+    id: 'prod-saree-white-sage-01',
+    name: 'Elegant White Saree with Sage Green Blouse',
+    slug: 'elegant-white-saree-with-sage-green-blouse',
+    imageUrl: '/assets/aistudio/Elegant_White_Saree_with_Sage_Green_Blouse_____Ethnic_Fashion_f023b3b4.jpeg',
+    shortDescription: 'Elegant white saree paired with a sage green blouse featuring sheer sleeves and delicate golden embroidery. A graceful, timeless ethnic look.',
+    fullDescription: 'Discover the beauty of understated elegance with this white saree and sage green blouse combination. The soft white drape, intricate golden border and delicate blouse detailing create a sophisticated ethnic look. Style it with traditional jhumka earrings, a matching clutch and elegant footwear for festive gatherings, wedding functions or special occasions.',
+    categoryId: 'saree-collection',
+    categoryName: 'Saree Collection',
+    brand: 'Yatrababa Fashion Edit',
+    price: undefined,
+    currency: 'USD',
+    affiliateUrl: '',
+    availabilityNote: 'Elegant ethnic look for festive occasions, celebrations and special events.',
+    isFeatured: true,
+    isEditorsPick: true,
+    isTrending: true,
+    status: 'draft',
+    createdAt: '2026-01-25T12:00:00.000Z',
+    updatedAt: '2026-01-25T12:00:00.000Z',
+  },
   {
     id: 'prod-saree-banarasi-01',
     name: 'Royal Crimson Banarasi Zari Silk Saree',

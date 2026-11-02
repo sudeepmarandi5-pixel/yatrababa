@@ -65,11 +65,53 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Routing state
-  const [currentRoute, setCurrentRouteState] = useState<PageRoute>('home');
-  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
-  const [selectedProductSlug, setSelectedProductSlug] = useState<string | null>(null);
+  // Parse initial route from URL hash
+  const getInitialHash = () => {
+    if (typeof window === 'undefined') return { route: 'home' as PageRoute, prodSlug: null, catSlug: null };
+    const hash = window.location.hash.replace(/^#\/?/, '');
+    if (hash.startsWith('product/')) {
+      return { route: 'product' as PageRoute, prodSlug: hash.replace('product/', ''), catSlug: null };
+    }
+    if (hash.startsWith('category/')) {
+      return { route: 'category' as PageRoute, prodSlug: null, catSlug: hash.replace('category/', '') };
+    }
+    if (['admin', 'about', 'contact', 'privacy', 'terms', 'affiliate-disclosure'].includes(hash)) {
+      return { route: hash as PageRoute, prodSlug: null, catSlug: null };
+    }
+    return { route: 'home' as PageRoute, prodSlug: null, catSlug: null };
+  };
+
+  const initialNav = getInitialHash();
+  const [currentRoute, setCurrentRouteState] = useState<PageRoute>(initialNav.route);
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(initialNav.catSlug);
+  const [selectedProductSlug, setSelectedProductSlug] = useState<string | null>(initialNav.prodSlug);
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Sync hash routing so direct links, browser refresh, and social shares work
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '');
+      if (!hash || hash === 'home') {
+        setCurrentRouteState('home');
+      } else if (hash.startsWith('product/')) {
+        const slug = hash.replace('product/', '');
+        setSelectedProductSlug(slug);
+        setCurrentRouteState('product');
+      } else if (hash.startsWith('category/')) {
+        const slug = hash.replace('category/', '');
+        setSelectedCategorySlug(slug);
+        setCurrentRouteState('category');
+      } else if (
+        ['admin', 'about', 'contact', 'privacy', 'terms', 'affiliate-disclosure'].includes(hash)
+      ) {
+        setCurrentRouteState(hash as PageRoute);
+      }
+    };
+
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   // App Data state initialized with curated seed data
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -93,6 +135,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setCurrentRoute = (route: PageRoute) => {
     setCurrentRouteState(route);
+    if (route === 'home') {
+      if (window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    } else if (route === 'category' && selectedCategorySlug) {
+      window.location.hash = `#category/${selectedCategorySlug}`;
+    } else if (route === 'product' && selectedProductSlug) {
+      window.location.hash = `#product/${selectedProductSlug}`;
+    } else {
+      window.location.hash = `#${route}`;
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -230,7 +283,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           snapshot.forEach((d) => {
             list.push({ id: d.id, ...d.data() } as Product);
           });
-          setProducts(list);
+          // Preserve local catalog items not yet in remote snapshot (e.g. newly added drafts)
+          const remoteIds = new Set(list.map((p) => p.id));
+          const localOnly = initialProducts.filter((p) => !remoteIds.has(p.id));
+          setProducts([...list, ...localOnly]);
         }
       },
       (error) => {
@@ -251,8 +307,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           snapshot.forEach((d) => {
             list.push({ id: d.id, ...d.data() } as Category);
           });
-          list.sort((a, b) => a.order - b.order);
-          setCategories(list);
+          const remoteIds = new Set(list.map((c) => c.id));
+          const localOnly = initialCategories.filter((c) => !remoteIds.has(c.id));
+          const merged = [...list, ...localOnly].map((cat) => {
+            // If category still points to placeholder SVG but a curated photography asset is in initialCategories, use the asset
+            const initialMatch = initialCategories.find((ic) => ic.id === cat.id);
+            if (initialMatch && initialMatch.imageUrl && initialMatch.imageUrl.startsWith('/assets/')) {
+              return { ...cat, imageUrl: initialMatch.imageUrl };
+            }
+            return cat;
+          });
+          merged.sort((a, b) => a.order - b.order);
+          setCategories(merged);
         }
       },
       (error) => {
